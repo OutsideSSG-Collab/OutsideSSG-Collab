@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Интерактивная поздравительная книга на день рождения">
+    <meta name="keywords" content="день рождения, поздравление, пожелания, открытка">
+    <title>Интерактивная поздравительная книга</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>">
+    <style>
+        :root {
+            --primary-color: #ff85a2;
+            --secondary-color: #ffb6c1;
+            --accent-color: #ffd3b6;
+            --text-color: #555;
+            --light-bg: #fff5f5;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: var(--light-bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ночной фон с звёздами */
+        .night-sky {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #ffebf3 0%, #e6f2ff 100%);
+            z-index: -2;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Анимированная надпись Happy Birthday */
+        .birthday-text {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: clamp(2em, 5vw, 3em);
+            font-weight: bold;
+            color: var(--primary-color);
+            text-shadow: 0 0 10px #ffd1dc;
+            opacity: 0.8;
+            z-index: -1;
+            animation: slideText 15s linear infinite;
+            white-space: nowrap;
+            font-family: 'Pacifico', cursive;
+        }
+
+        @keyframes slideText {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Обложка книги */
+        .book-cover {
+            width: min(90%, 600px);
+            height: min(80vh, 400px);
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 50%, var(--secondary-color) 100%);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(255,182,193,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: clamp(1.5rem, 4vw, 1.75rem);
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 2px solid white;
+            text-align: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .book-cover:hover {
+            transform: scale(1.02) rotate(-1deg);
+            box-shadow: 0 15px 30px rgba(255,182,193,0.4);
+        }
+
+        .book-cover::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            width: 30px;
+            height: calc(100% - 20px);
+            background: linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            border-radius: 0 5px 5px 0;
+        }
+
+        .book-cover::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="white" stroke-width="2" stroke-dasharray="5,5"/></svg>');
+            opacity: 0.1;
+            background-size: 100px 100px;
+        }
+
+        /* Контейнер книги */
+        .book-container {
+            width: min(90%, 600px);
+            height: min(80vh, 400px);
+            position: relative;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Страницы */
+        .page {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            box-sizing: border-box;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(255,182,193,0.2);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            border: 1px solid var(--accent-color);
+            overflow-y: auto;
+        }
+
+        .page.active {
+            display: flex;
+            animation: pageFlip 0.6s ease-out;
+        }
+
+        @keyframes pageFlip {
+            0% { transform: rotateY(90deg); opacity: 0; }
+            100% { transform: rotateY(0); opacity: 1; }
+        }
+
+        .page h3 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            font-weight: bold;
+        }
+
+        .page p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: clamp(1rem, 2.5vw, 1.1rem);
+            color: var(--text-color);
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 14px;
+            color: var(--secondary-color);
+        }
+
+        /* Кнопки управления */
+        .book-controls {
+            display: flex;
+            justify-content: space-between;
+            width: min(90%, 600px);
+            margin: 20px 0;
+            gap: 20px;
+        }
+
+        .book-btn {
+            padding: 12px 30px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(255,182,193,0.3);
+            font-weight: bold;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .book-btn:hover {
+            background: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(255,182,193,0.4);
+        }
+
+        .book-btn:disabled {
+            background: var(--accent-color);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+
+        /* Декоративные элементы */
+        .decoration {
+            position: absolute;
+            font-size: clamp(2rem, 5vw, 3rem);
+            opacity: 0.15;
+            color: var(--primary-color);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Сердечки */
+        .hearts {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .heart {
+            position: absolute;
+            font-size: clamp(15px, 3vw, 25px);
+            color: var(--secondary-color);
+            animation: floatHeart linear infinite;
+            opacity: 0.7;
+            z-index: -1;
+        }
+
+        @keyframes floatHeart {
+            to {
+                transform: translateY(-100vh) rotate(360deg);
+            }
+        }
+
+        /* Кнопка звука */
+        .sound-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+            border: none;
+            color: white;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .sound-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-color);
+        }
+
+        /* Адаптация для мобильных */
+        @media (max-width: 600px) {
+            .page {
+                padding: 20px;
+            }
+            
+            .book-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .book-btn {
+                width: 100%;
+                max-width: none;
+            }
+        }
+
+        /* Эффект конфетти */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            opacity: 0;
+            animation: confettiFall 5s linear forwards;
+            z-index: 1000;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Прогресс бар */
+        .progress-container {
+            width: 100%;
+            max-width: 600px;
+            height: 6px;
+            background: rgba(255, 182, 193, 0.2);
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Ночной фон -->
+    <div class="night-sky"></div>
+    
+    <!-- Звёздный фон -->
+    <div class="stars" id="stars"></div>
+    
+    <!-- Плавающие сердечки -->
+    <div class="hearts" id="hearts"></div>
+    
+    <!-- Анимированная надпись -->
+    <div class="birthday-text">Happy Birthday</div>
+
+    <!-- Прогресс бар -->
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Обложка книги -->
+    <div class="book-cover" id="bookCover">
+        <div>Книга пожеланий<br>на День Рождения</div>
+        <div style="margin-top: 20px; font-size: 0.8em; opacity: 0.8;">Нажмите, чтобы открыть</div>
+    </div>
+
+    <!-- Контейнер книги -->
+    <div class="book-container" id="bookContainer">
+        <!-- Страница 1 -->
+        <div class="page active" id="page1">
+            <h3>Дорогой именинник!</h3>
+            <p>Открыв эту книгу, ты найдёшь самые тёплые пожелания, которые мы подготовили для тебя в этот особенный день.</p>
+            <p>Нажимай "Далее", чтобы перейти к пожеланиям!</p>
+            <div class="decoration" style="right: 30px; top: 50px;">🌸</div>
+            <div class="page-number">1</div>
+        </div>
+        
+        <!-- Страница 2 -->
+        <div class="page" id="page2">
+            <h3>Первое пожелание</h3>
+            <p>Пусть сбываются мечты,<br>
+               Радость множится в годах,<br>
+               Счастье будет без границ,<br>
+               А успех - в твоих руках!</p>
+            <div class="decoration" style="left: 40px; bottom: 60px;">🎂</div>
+            <div class="page-number">2</div>
+        </div>
+        
+        <!-- Страница 3 -->
+        <div class="page" id="page3">
+            <h3>Второе пожелание</h3>
+            <p>Здоровья крепкого, как сталь,<br>
+               Улыбок солнечных без края,<br>
+               Чтоб каждый день был как карнавал,<br>
+               И жизнь мечтой твоей играла!</p>
+            <div class="decoration" style="right: 50px; bottom: 70px;">🎁</div>
+            <div class="page-number">3</div>
+        </div>
+        
+        <!-- Страница 4 -->
+        <div class="page" id="page4">
+            <h3>Третье пожелание</h3>
+            <p>Пусть ангел бережёт тебя,<br>
+               А звёзды светят ярче,<br>
+               Желаю счастья без конца,<br>
+               Любви и света в придачу!</p>
+            <div class="decoration" style="left: 30px; top: 80px;">✨</div>
+            <div class="page-number">4</div>
+        </div>
+        
+        <!-- Страница 5 -->
+        <div class="page" id="page5">
+            <h3>Четвёртое пожелание</h3>
+            <p>Пусть будет жизнь полна чудес,<br>
+               Улыбок, радости, веселья,<br>
+               Пусть ждёт успех, удача, смех,<br>
+               И море ярких впечатлений!</p>
+            <div class="decoration" style="right: 40px; top: 60px;">🌠</div>
+            <div class="page-number">5</div>
+        </div>
+        
+        <!-- Страница 6 -->
+        <div class="page" id="page6">
+            <h3>Заключение</h3>
+            <p>Спасибо, что открыл эту книгу! Надеемся, наши пожелания принесут тебе радость и вдохновение.</p>
+            <p>Пусть этот год будет для тебя самым счастливым!</p>
+            <div style="font-size: clamp(2rem, 8vw, 3rem); margin: 20px 0; color: var(--primary-color);">❤️</div>
+            <button id="restartBtn" class="book-btn" style="margin-top: 10px;">Начать сначала</button>
+            <div class="page-number">6</div>
+        </div>
+        
+        <div class="book-controls">
+            <button class="book-btn" id="prevBtn" disabled>Назад</button>
+            <button class="book-btn" id="nextBtn">Далее</button>
+        </div>
+    </div>
+
+    <!-- Кнопка управления звуком -->
+    <button class="sound-btn" id="soundBtn">♪</button>
+
+    <!-- Аудио элемент (скрытый) -->
+    <audio id="birthdayMusic" loop>
+        <source src="https://assets.mixkit.co/music/preview/mixkit-happy-birthday-to-you-108.mp3" type="audio/mpeg">
+        Ваш браузер не поддерживает аудио элемент.
+    </audio>
+
+    <script>
+        // Инициализация элементов
+        const starsContainer = document.getElementById('stars');
+        const heartsContainer = document.getElementById('hearts');
+        const bookCover = document.getElementById('bookCover');
+        const bookContainer = document.getElementById('bookContainer');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const soundBtn = document.getElementById('soundBtn');
+        const music = document.getElementById('birthdayMusic');
+        const pages = document.querySelectorAll('.page');
+        
+        // Переменные состояния
+        let currentPage = 0;
+        let isPlaying = false;
+        let isFirstInteraction = true;
+
+        // Создаем звёздный фон
+        function createStars() {
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = `${Math.random() * 4}px`;
+                star.style.height = star.style.width;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.setProperty('--duration', `${2 + Math.random() * 3}s`);
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Создаем плавающие сердечки
+        function createHearts() {
+            for (let i = 0; i < 20; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                heart.innerHTML = '❤️';
+                heart.style.left = `${Math.random() * 100}%`;
+                heart.style.bottom = `-20px`;
+                heart.style.animationDuration = `${10 + Math.random() * 20}s`;
+                heart.style.animationDelay = `${Math.random() * 5}s`;
+                heartsContainer.appendChild(heart);
+            }
+        }
+
+        // Создаем эффект конфетти
+        function createConfetti() {
+            const colors = ['#ff85a2', '#ffb6c1', '#ffd3b6', '#a2d2ff', '#bde0fe'];
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.width = `${Math.random() * 10 + 5}px`;
+                confetti.style.height = `${Math.random() * 10 + 5}px`;
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                document.body.appendChild(confetti);
+                
+                // Удаляем конфетти после анимации
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+
+        // Показываем текущую страницу
+        function showPage(index) {
+            // Обновляем прогресс бар
+            const progress = ((index + 1) / pages.length) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            // Скрываем все страницы
+            pages.forEach(page => page.classList.remove('active'));
+            
+            // Показываем текущую страницу
+            pages[index].classList.add('active');
+            
+            // Обновляем состояние кнопок
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === pages.length - 1;
+            
+            // Если это последняя страница, создаем конфетти
+            if (index === pages.length - 1) {
+                createConfetti();
+            }
+        }
+
+        // Инициализация при загрузке
+        function init() {
+            createStars();
+            createHearts();
+            showPage(0);
+            
+            // Обработчик первого взаимодействия (для автовоспроизведения аудио)
+            document.body.addEventListener('click', handleFirstInteraction, { once: true });
+        }
+
+        // Обработчик первого взаимодействия
+        function handleFirstInteraction() {
+            if (isFirstInteraction) {
+                isFirstInteraction = false;
+                // Можно включить музыку при первом клике, если нужно
+            }
+        }
+
+        // Открытие книги
+        bookCover.addEventListener('click', function() {
+            this.style.animation = 'fadeOut 0.5s forwards';
+            setTimeout(() => {
+                this.style.display = 'none';
+                bookContainer.style.display = 'block';
+                progressContainer.style.display = 'block';
+                
+                // Воспроизводим музыку, если пользователь уже взаимодействовал
+                if (!isFirstInteraction) {
+                    music.play().catch(e => console.log("Автовоспроизведение заблокировано:", e));
+                    isPlaying = true;
+                    soundBtn.textContent = '♫';
+                }
+            }, 500);
+        });
+
+        // Управление музыкой
+        soundBtn.addEventListener('click', function() {
+            if (isPlaying) {
+                music.pause();
+                soundBtn.textContent = '♪';
+            } else {
+                music.play().catch(e => console.log("Ошибка воспроизведения:", e));
+                soundBtn.textContent = '♫';
+            }
+            isPlaying = !isPlaying;
+        });
+
+        // Навигация по страницам
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 0) {
+                showPage(--currentPage);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < pages.length - 1) {
+                showPage(++currentPage);
+            }
+        });
+
+        // Кнопка "Начать сначала"
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                currentPage = 0;
+                showPage(currentPage);
+                // Прокручиваем к началу
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Обработчик для свайпов на мобильных устройствах
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        bookContainer.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, false);
+
+        bookContainer.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            const threshold = 50; // минимальное расстояние для свайпа
+            
+            if (touchEndX < touchStartX - threshold) {
+                // Свайп влево - следующая страница
+                if (currentPage < pages.length - 1) {
+                    showPage(++currentPage);
+                }
+            } else if (touchEndX > touchStartX + threshold) {
+                // Свайп вправо - предыдущая страница
+                if (currentPage > 0) {
+                    showPage(--currentPage);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
